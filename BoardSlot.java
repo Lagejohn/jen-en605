@@ -25,10 +25,6 @@ public class BoardSlot {
         this.occupants.remove(player);
     }
     
-    public void setAdjacentSlots(List<GameLogicController.BoardSlotLabel> adjacentSlots) {
-        this.adjacentSlots = adjacentSlots;
-    }
-    
     public List<GameLogicController.BoardSlotLabel> getAdjacentSlots() {
         return this.adjacentSlots;
     }

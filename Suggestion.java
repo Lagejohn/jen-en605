@@ -1,26 +1,26 @@
 
 public class Suggestion {
     
-    private GameLogicController.PlayerName suspect;
-    private GameLogicController.BoardSlotLabel room;
-    private GameLogicController.Weapon weapon;
+    private SuspectCard suspect;
+    private WeaponCard weapon;
+    private RoomCard room;
     
-    public Suggestion(GameLogicController.PlayerName suspect, GameLogicController.BoardSlotLabel room, GameLogicController.Weapon weapon) {
+    public Suggestion(SuspectCard suspect, WeaponCard weapon, RoomCard room) {
         this.suspect = suspect;
         this.room = room;
         this.weapon = weapon;
     }
     
-    public GameLogicController.PlayerName getSuspect() {
+    public SuspectCard getSuspectCard() {
         return this.suspect;
     }
     
-    public GameLogicController.BoardSlotLabel getRoom() {
-        return this.room;
+    public WeaponCard getWeaponCard() {
+        return this.weapon;
     }
     
-    public GameLogicController.Weapon getWeapon() {
-        return this.weapon;
+    public RoomCard getRoomCard() {
+        return this.room;
     }
 
 }

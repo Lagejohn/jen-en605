@@ -22,12 +22,12 @@ public class GameLogicController {
     }
     
     enum PlayerName {
-        COLONEL_MUSTARD,
         MISS_SCARLET,
-        PROFESSOR_PLUM,
-        MR_GREEN,
+        COLONEL_MUSTARD,
         MRS_WHITE,
-        MRS_PEACOCK
+        MR_GREEN,
+        MRS_PEACOCK,
+        PROFESSOR_PLUM
     }
     
     enum BoardSlotLabel {
@@ -60,8 +60,6 @@ public class GameLogicController {
         STARTING_SQUARE_6
     }
     
-    Map<PlayerName, Player> players = new HashMap<>();
-    List<PlayerName> activePlayers = new ArrayList<>();
     List<PlayerName> availablePlayers = new ArrayList<>(Arrays.asList(
             
             PlayerName.MISS_SCARLET,
@@ -112,6 +110,8 @@ public class GameLogicController {
         
         generateWinningSuggestion();
         
+        shuffleCardsAndDeal();
+        
         playGame();
         scan.close();
         
@@ -120,12 +120,18 @@ public class GameLogicController {
     public void playGame() {
         int i = 0;
         System.out.print("\nStarting Game!\n\n");
+        
+        List<PlayerName> activePlayers = gameBoard.getActivePlayers();
         while (winner == null) {
             
             Player currPlayer = gameBoard.getPlayers().get(activePlayers.get(i % activePlayers.size()));
-            System.out.print("\n" + currPlayer.getName() + "'s turn!\n\n");
             
-            winner = takeTurn(currPlayer);
+            
+            if (currPlayer.isActive()) {
+                System.out.print("\n" + currPlayer.getName() + "'s turn!\n\n");
+                winner = takeTurn(currPlayer);
+            }
+            
             
             i++;
         }
@@ -134,35 +140,63 @@ public class GameLogicController {
     }
     
     private Player takeTurn(Player player) {
+        
+        boolean movedViaSuggestion = player.isMovedViaSuggestion();
+        BoardSlotLabel currPosition = player.getPosition();
+        
         System.out.print("Here are the positions of all players on the board:\n\n");
-        for (PlayerName pName : activePlayers) {
+        for (PlayerName pName : PlayerName.values()) {
             Player p = gameBoard.getPlayerByName(pName);
             System.out.print(p.getName() + "'s position: " + p.getPosition() + "\n");
         }
-        List<BoardSlotLabel> availableMoves = gameBoard.getAvailableMoves(player.getPosition());
-        System.out.print("\nAvailable moves: " + availableMoves + " Please enter the number of the slot you would like to enter:, or enter 100 to make your formal accusation:\n");
+        List<BoardSlotLabel> availableMoves = gameBoard.getAvailableMoves(currPosition);
+        
+        // if player was moved by suggestion, they have the option to stay in current room and make suggestion
+        if (movedViaSuggestion) availableMoves.add(currPosition);
+        
+        if (availableMoves.isEmpty()) {
+            System.out.print("Player has no available moves. Please enter 100 to make formal accusation; otherwise enter any other integer to skip turn:\n");
+        } else {
+            System.out.print("\nAvailable moves: " + availableMoves + " Please enter the number of the slot you would like to enter:, or enter 100 to make your formal accusation:\n");
+        }
+        
         
         int choice = scan.nextInt();
         
         if (choice == 100) {
-            return handleAccusation(player);
+            return handleAccusation(player.getName());
         }
         
-        BoardSlotLabel move = availableMoves.get(choice);
-        gameBoard.setOccupantForBoardSlot(player.getName(), move);
+        // if player has no moves turn is over
+        if (availableMoves.isEmpty()) return null;
+        
+        handlePlayerMove(player.getName(), availableMoves.get(choice));
+        
+        if (movedViaSuggestion) availableMoves.remove(currPosition);
+        
+        return null;
+
+    }
+    
+    private void handlePlayerMove(PlayerName pName, BoardSlotLabel move) {
+        
+        // indicate that player moving via choice
+        gameBoard.markPlayerNotMovedViaSuggestion(pName);
+        
+        // update occupancy
+        gameBoard.setOccupantForBoardSlot(pName, move);
+        
+        // if user enters a room, they will make a suggestion
         if (isRoom(move)) {
             promptForSuggestion(move);
         }
-        
-        
-        return null;
     }
     
     private boolean isRoom(BoardSlotLabel slot) {
         return rooms.contains(slot);
     }
     
-    private Player handleAccusation(Player player) {
+    private Player handleAccusation(PlayerName pName) {
 
         System.out.print("Make a formal Accusation!\nChoose a suspect: ");
         System.out.print(new ArrayList<>(Arrays.asList(PlayerName.values())) + "\n");
@@ -180,9 +214,9 @@ public class GameLogicController {
         
         Suggestion suggestion = makeSuggestion(suspect, weapon, room);
         
-        boolean correctSuspect = gameBoard.compareSuspect(suggestion.getSuspect());
-        boolean correctWeapon = gameBoard.compareWeapon(suggestion.getWeapon());
-        boolean correctRoom = gameBoard.compareRoom(suggestion.getRoom());
+        boolean correctSuspect = gameBoard.compareSuspect(suggestion.getSuspectCard().getSuspect());
+        boolean correctWeapon = gameBoard.compareWeapon(suggestion.getWeaponCard().getWeapon());
+        boolean correctRoom = gameBoard.compareRoom(suggestion.getRoomCard().getRoom());
         
         System.out.print("Accusation made! Here are your results: \n");
         System.out.print("Your suspect choice is: " + (correctSuspect ? "correct\n" : "incorrect\n"));
@@ -190,20 +224,28 @@ public class GameLogicController {
         System.out.print("Your room choice is: " + (correctRoom ? "correct\n" : "incorrect\n"));
         
         if (correctSuspect && correctWeapon && correctRoom) {
-            return announceWinner(player);
+            return announceWinner(pName);
         } else {
             System.out.print("False accusation! Player is eliminated.\n");
-            activePlayers.remove(player.getName());
-            gameBoard.removePlayer(player.getName());
+            gameBoard.removePlayer(pName);
             
+            return checkForLastPlayerRemaining();
+            
+        }
+    }
+    
+    private Player checkForLastPlayerRemaining() {
+        if (gameBoard.getNumActivePlayers() == 1) {
+            System.out.print("Only one player remains, so they win!\n");
+            return announceWinner(gameBoard.getActivePlayers().get(0));
         }
         
         return null;
     }
     
-    private Player announceWinner(Player player) {
-        System.out.print("Correct accusation! Winner :) Congratulations " + player.getName() + "!!! Game over.");
-        return player;
+    private Player announceWinner(PlayerName pName) {
+        System.out.print("Winner :) Congratulations " + pName + "!!! Game over.");
+        return gameBoard.getPlayerByName(pName);
     }
     
     private void selectPlayers() {
@@ -219,16 +261,19 @@ public class GameLogicController {
             morePlayers = scan.nextInt();
         }
         
-        gameBoard.setPlayers(players);
+        // initialize inactive players
+        for (PlayerName pName : availablePlayers) {
+            gameBoard.addPlayer(new Player(pName, startingPositions.get(pName), false));
+        }
+        
     }
     
     // todo make endpoint
     public void addPlayer(PlayerName name, BoardSlotLabel position) {
         
-        players.put(name, new Player(name, position));
-        
-        activePlayers.add(name);
+        gameBoard.addPlayer(new Player(name, position, true));
         availablePlayers.remove(name);
+        
     }
     
     public List<PlayerName> getAvailablePlayers() {
@@ -375,11 +420,46 @@ public class GameLogicController {
         Weapon[] possibleWeapons = Weapon.values();
         Weapon what = possibleWeapons[rand.nextInt(possibleWeapons.length)];
         
-        gameBoard.setWinningSuggestion(makeSuggestion(who, what, where));
+        gameBoard.setWinningSuggestion(new Suggestion(new SuspectCard(who), new WeaponCard(what), new RoomCard(where)));
         
-        System.out.print("FOR DEMONSTRATION: Winning trio is " + gameBoard.getWinningSuggestion().getSuspect() +
-                " with the " + gameBoard.getWinningSuggestion().getWeapon() + " in the " + gameBoard.getWinningSuggestion().getRoom() + "\n\n");
+        System.out.print("FOR DEMONSTRATION: Winning trio is " + gameBoard.getWinningSuggestion().getSuspectCard().getSuspect() +
+                " with the " + gameBoard.getWinningSuggestion().getWeaponCard().getWeapon() + " in the " + gameBoard.getWinningSuggestion().getRoomCard().getClass() + "\n\n");
         
+    }
+    
+    private void shuffleCardsAndDeal() {
+        List<Card> remainingCards = new ArrayList<>(Arrays.asList(
+                
+                new SuspectCard(PlayerName.MISS_SCARLET),
+                new SuspectCard(PlayerName.COLONEL_MUSTARD),
+                new SuspectCard(PlayerName.MRS_WHITE),
+                new SuspectCard(PlayerName.MR_GREEN),
+                new SuspectCard(PlayerName.MRS_PEACOCK),
+                new SuspectCard(PlayerName.PROFESSOR_PLUM),
+                
+                new WeaponCard(Weapon.ROPE),
+                new WeaponCard(Weapon.LEAD_PIPE),
+                new WeaponCard(Weapon.KNIFE),
+                new WeaponCard(Weapon.WRENCH),
+                new WeaponCard(Weapon.CANDLESTICK),
+                new WeaponCard(Weapon.REVOLVER),
+                
+                new RoomCard(BoardSlotLabel.STUDY),
+                new RoomCard(BoardSlotLabel.HALL),
+                new RoomCard(BoardSlotLabel.LOUNGE),
+                new RoomCard(BoardSlotLabel.LIBRARY),
+                new RoomCard(BoardSlotLabel.BILLIARD_ROOM),
+                new RoomCard(BoardSlotLabel.DINING_ROOM),
+                new RoomCard(BoardSlotLabel.CONSERVATORY),
+                new RoomCard(BoardSlotLabel.BALLROOM),
+                new RoomCard(BoardSlotLabel.KITCHEN)
+                
+            )
+        );
+        
+        remainingCards.removeIf(c -> c.getSuspect() == gameBoard.getWinningSuggestion().getSuspectCard().getSuspect());
+        remainingCards.removeIf(c -> c.getWeapon() == gameBoard.getWinningSuggestion().getWeaponCard().getWeapon());
+        remainingCards.removeIf(c -> c.getRoom() == gameBoard.getWinningSuggestion().getRoomCard().getRoom());
     }
     
     private void promptForSuggestion(BoardSlotLabel room) {
@@ -401,15 +481,18 @@ public class GameLogicController {
         Suggestion suggestion = makeSuggestion(suspect, weapon, room);
         
         System.out.print("Suggestion made! Here are your results: \n");
-        System.out.print("Your suspect choice is: " + (gameBoard.compareSuspect(suggestion.getSuspect()) ? "correct\n" : "incorrect\n"));
-        System.out.print("Your weapon choice is: " + (gameBoard.compareWeapon(suggestion.getWeapon()) ? "correct\n" : "incorrect\n"));
-        System.out.print("Your room choice is: " + (gameBoard.compareRoom(suggestion.getRoom()) ? "correct\n" : "incorrect\n"));
+        System.out.print("Your suspect choice is: " + (gameBoard.compareSuspect(suggestion.getSuspectCard().getSuspect()) ? "correct\n" : "incorrect\n"));
+        System.out.print("Your weapon choice is: " + (gameBoard.compareWeapon(suggestion.getWeaponCard().getWeapon()) ? "correct\n" : "incorrect\n"));
+        System.out.print("Your room choice is: " + (gameBoard.compareRoom(suggestion.getRoomCard().getRoom()) ? "correct\n" : "incorrect\n"));
     }
 
     private Suggestion makeSuggestion(PlayerName suspect, Weapon weapon, BoardSlotLabel room) {
-     //   gameBoard.movePlayer(suspect, room);
+        gameBoard.setOccupantForBoardSlot(suspect, room);
         
-        return new Suggestion(suspect, room, weapon);
+        // mark player as moved via suggestion
+        gameBoard.markPlayerMovedViaSuggestion(suspect);
+        
+        return new Suggestion(new SuspectCard(suspect), new WeaponCard(weapon), new RoomCard(room));
     }
     
 

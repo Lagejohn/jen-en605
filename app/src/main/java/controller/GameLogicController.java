@@ -56,7 +56,7 @@ public class GameLogicController {
                     break;
                 } else {
                     try {
-                        text = new StringBuilder(addPlayer(command));
+                        text = new StringBuilder(initializePlayer(command));
                     } catch (NumberFormatException | IndexOutOfBoundsException e) {
                         text.append(command).append(" is not a valid player index. Please try again.\n");
                         break;
@@ -66,7 +66,7 @@ public class GameLogicController {
 
             case FIRST_PLAYER_SELECTION -> {
                 try {
-                    text = new StringBuilder(addPlayer(command));
+                    text = new StringBuilder(initializePlayer(command));
                 } catch (NumberFormatException | IndexOutOfBoundsException e) {
                     text.append(command).append(" is not a valid player index. Please try again.\n");
                     break;
@@ -233,7 +233,7 @@ public class GameLogicController {
         return text;
     }
 
-    public String addPlayer(String command) throws NumberFormatException, IndexOutOfBoundsException {
+    public String initializePlayer(String command) throws NumberFormatException, IndexOutOfBoundsException {
         String text = "";
         int playerChoice = Integer.parseInt(command);
         PlayerName name = availablePlayers.get(playerChoice);

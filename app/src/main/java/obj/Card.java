@@ -1,3 +1,6 @@
+package obj;
+
+import controller.GameLogicController;
 // todo figure out imports to put all card classes in a folder
 public class Card {
     

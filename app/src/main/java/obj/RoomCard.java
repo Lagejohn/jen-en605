@@ -1,4 +1,6 @@
+package obj;
 
+import controller.GameLogicController;
 
 public class RoomCard extends Card {
     GameLogicController.BoardSlotLabel room;

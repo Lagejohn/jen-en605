@@ -1,4 +1,7 @@
+package obj;
+
 import java.util.List;
+import controller.GameLogicController;
 
 public class Hallway extends BoardSlot {
 

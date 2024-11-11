@@ -1,3 +1,6 @@
+package app;
+
+import controller.GameLogicController;
 
 public class PlayGame {
 

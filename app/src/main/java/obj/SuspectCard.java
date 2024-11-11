@@ -1,3 +1,6 @@
+package obj;
+
+import controller.GameLogicController;
 
 public class SuspectCard extends Card {
     GameLogicController.PlayerName suspect;

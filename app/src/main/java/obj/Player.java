@@ -1,5 +1,9 @@
+package obj;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import controller.GameLogicController;
 
 public class Player {
     GameLogicController.PlayerName name;

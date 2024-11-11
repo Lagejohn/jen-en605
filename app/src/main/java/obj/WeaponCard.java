@@ -1,3 +1,6 @@
+package obj;
+
+import controller.GameLogicController;
 
 public class WeaponCard extends Card {
     GameLogicController.Weapon weapon;

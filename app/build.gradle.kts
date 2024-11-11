@@ -9,6 +9,8 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+    id("org.springframework.boot") version "3.2.0" // Update to the latest Spring Boot version
+    id("io.spring.dependency-management") version "1.1.0"
 }
 
 repositories {
@@ -19,6 +21,12 @@ repositories {
 dependencies {
     // This dependency is used by the application.
     implementation(libs.guava)
+
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+
+    // Testing dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 testing {
@@ -33,12 +41,15 @@ testing {
 
 // Apply a specific Java toolchain to ease working on different environments.
 java {
+    sourceCompatibility = JavaVersion.VERSION_22
+    targetCompatibility = JavaVersion.VERSION_22
     toolchain {
         languageVersion = JavaLanguageVersion.of(22)
     }
 }
 
+
 application {
     // Define the main class for the application.
-    mainClass = "org.example.App"
+    mainClass = "controller.CluelessGameApplication"
 }

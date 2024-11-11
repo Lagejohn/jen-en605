@@ -1,3 +1,4 @@
+package obj;
 
 public class Suggestion {
     

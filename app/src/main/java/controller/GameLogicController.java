@@ -17,6 +17,7 @@ public class GameLogicController {
     // todo: take out for GUI implementation
     Scanner scan = new Scanner( System.in );
 
+    PlayerName winner = null;
     public GameStage gamestage;
     List<PlayerName> activePlayers;
     List<BoardSlotLabel> availableMoves;
@@ -27,6 +28,9 @@ public class GameLogicController {
     PlayerName sugSuspect;
     Weapon sugWeapon;
 
+    PlayerName accSuspect;
+    Weapon accWeapon;
+    BoardSlotLabel accRoom;
 
     /**
      * Primary method for handling input commands from the frontend client
@@ -72,13 +76,18 @@ public class GameLogicController {
             }
 
             case GAMEPLAY -> {
-                Player winner = null;
                 if (command.equals("100")) {
-                    winner = handleAccusation(currPlayer.getName());
+                    //winner = handleAccusation(currPlayer.getName());
+                    text.append("Make a formal Accusation!\nChoose a suspect: ");
+                    text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
+                    gamestage = GameStage.ACCUSATION_PARSE_SUSPECT;
                 }
                 if (availableMoves.isEmpty()) {
                     System.out.printf("[processCommand] player %s declined to accuse and has no available moves, skipping...",currPlayer.getName());
-
+                    text.append("Player declined to accuse and has no available moves, skipping turn...\n");
+                    turnNum++;
+                    text.append(setupTurn());
+                    break;
                 }
                 selectedMove = availableMoves.get(Integer.parseInt(command));
                 boolean isInRoom = handlePlayerMove(currPlayer.getName(),selectedMove);
@@ -90,7 +99,7 @@ public class GameLogicController {
                     gamestage = GameStage.SUGGESTION;
                 } else {
                     turnNum ++;
-                    setupTurn();
+                    text.append(setupTurn());
                 }
                 break;
             }
@@ -114,16 +123,54 @@ public class GameLogicController {
                 }
                 gamestage = GameStage.GAMEPLAY;
                 turnNum++;
-                setupTurn();
+                text.append(setupTurn());
                 break;
             }
 
-            case ACCUSATION -> {
+            case ACCUSATION_PARSE_SUSPECT -> {
+                accSuspect = PlayerName.values()[Integer.parseInt(command)];
+                text.append("\nChoose a weapon: ");
+                text.append(new ArrayList<>(Arrays.asList(Weapon.values()))).append("\n");
+                gamestage = GameStage.ACCUSATION_PARSE_WEAPON;
                 break;
+            }
+
+            case ACCUSATION_PARSE_WEAPON -> {
+                accWeapon = Weapon.values()[Integer.parseInt(command)];
+
+                text.append("\nChoose a room: ");
+                text.append(rooms);
+                gamestage = GameStage.ACCUSATION_PARSE_ROOM;
+                break;
+            }
+
+            case ACCUSATION_PARSE_ROOM -> {
+                accRoom = rooms.get(Integer.parseInt(command));
+
+                Suggestion suggestion = makeSuggestion(accSuspect, accWeapon, accRoom);
+                boolean correctSuspect = gameBoard.compareSuspect(suggestion.getSuspectCard().getSuspect());
+                boolean correctWeapon = gameBoard.compareWeapon(suggestion.getWeaponCard().getWeapon());
+                boolean correctRoom = gameBoard.compareRoom(suggestion.getRoomCard().getRoom());
+
+                text.append("Accusation made! Here are your results: \n");
+                text.append("Your suspect choice is: ").append(correctSuspect ? "correct\n" : "incorrect\n");
+                text.append("Your weapon choice is: ").append(correctWeapon ? "correct\n" : "incorrect\n");
+                text.append("Your room choice is: ").append(correctRoom ? "correct\n" : "incorrect\n");
+
+                if (correctSuspect && correctWeapon && correctRoom) {
+                    winner = currPlayer.getName();
+                    gamestage = GameStage.ENDGAME;
+                } else {
+                    System.out.printf("False accusation! Player %s is eliminated.\n", currPlayer.getName());
+                    gameBoard.removePlayer(currPlayer.getName());
+
+                    checkForLastPlayerRemaining();
+
+                }
             }
 
             case ENDGAME -> {
-                break;
+                text.append(winner).append(" has already won! Press restart to play again.\n");
             }
         }
         return text;
@@ -133,7 +180,7 @@ public class GameLogicController {
      * @return text output that ought to be displayed at the start of a turn
      */
     private String setupTurn() {
-        System.out.printf("[setupTurn] Setting up turn #%d", turnNum);
+        System.out.printf("[setupTurn] Setting up turn #%d\n", turnNum);
         StringBuilder text = new StringBuilder();
 
         currPlayer = gameBoard.getPlayers().get(activePlayers.get(turnNum % activePlayers.size()));
@@ -164,6 +211,7 @@ public class GameLogicController {
         String text = "--New Game Started--\n";
         text += "Welcome to clueless!\n\n";
         gameBoard = new Board(createLayout());
+        winner = null;
         gamestage = GameStage.FIRST_PLAYER_SELECTION;
         turnNum = 0;
 
@@ -201,7 +249,9 @@ public class GameLogicController {
         ADDITIONAL_PLAYER_SELECTION,
         GAMEPLAY,
         SUGGESTION,
-        ACCUSATION,
+        ACCUSATION_PARSE_SUSPECT,
+        ACCUSATION_PARSE_WEAPON,
+        ACCUSATION_PARSE_ROOM,
         ENDGAME
     }
 
@@ -289,7 +339,7 @@ public class GameLogicController {
         )
     );
     Board gameBoard;
-    Player winner = null;
+    Player legacyWinner = null;
 
     // Legacy method
     public void startGame() {
@@ -323,7 +373,7 @@ public class GameLogicController {
 
             if (currPlayer.isActive()) {
                 System.out.print("\n" + currPlayer.getName() + "'s turn!\n\n");
-                winner = takeTurn(currPlayer);
+                legacyWinner = takeTurn(currPlayer);
             }
 
 
@@ -434,11 +484,11 @@ public class GameLogicController {
         }
     }
 
-    // Legacy method
+    // Modified legacy method
     private Player checkForLastPlayerRemaining() {
         if (gameBoard.getNumActivePlayers() == 1) {
             System.out.print("Only one player remains, so they win!\n");
-            return announceWinner(gameBoard.getActivePlayers().get(0));
+            winner = gameBoard.getActivePlayers().getFirst();
         }
 
         return null;
@@ -629,8 +679,8 @@ public class GameLogicController {
 
         gameBoard.setWinningSuggestion(new Suggestion(new SuspectCard(who), new WeaponCard(what), new RoomCard(where)));
 
-        System.out.print("FOR DEMONSTRATION: Winning trio is " + gameBoard.getWinningSuggestion().getSuspectCard().getSuspect() +
-                " with the " + gameBoard.getWinningSuggestion().getWeaponCard().getWeapon() + " in the " + gameBoard.getWinningSuggestion().getRoomCard().getClass() + "\n\n");
+        System.out.print("[generateWinningSuggestion]: Winning trio is " + gameBoard.getWinningSuggestion().getSuspectCard().getSuspect() +
+                " with the " + gameBoard.getWinningSuggestion().getWeaponCard().getWeapon() + " in the " + gameBoard.getWinningSuggestion().getRoomCard().getRoom() + "\n\n");
 
     }
 

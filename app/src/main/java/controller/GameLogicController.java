@@ -176,9 +176,18 @@ public class GameLogicController {
                 } else {
                     System.out.printf("False accusation! Player %s is eliminated.\n", currPlayer.getName());
                     gameBoard.removePlayer(currPlayer.getName());
+                    System.out.printf("[processCommand] Player %s eliminated. Remaining players: %s", currPlayer.getName(), gameBoard.getActivePlayers()+"\n");
 
-                    checkForLastPlayerRemaining();
+                    if(onlyOnePlayerRemaining()) {
+                        winner = gameBoard.getActivePlayers().getFirst();
+                        text.append(String.format("%s is the last remaining player! They win!", winner));
+                        gamestage = GameStage.ENDGAME;
+                        break;
+                    }
 
+                    turnNum++;
+                    gamestage = GameStage.GAMEPLAY;
+                    text.append(setupTurn());
                 }
             }
 
@@ -187,6 +196,10 @@ public class GameLogicController {
             }
         }
         return text;
+    }
+
+    private boolean onlyOnePlayerRemaining() {
+        return gameBoard.getActivePlayers().size() == 1;
     }
 
     /** Standard setup for a player's turn that does everything prior to the player submitting their move

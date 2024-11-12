@@ -94,12 +94,12 @@
 </header>
 
 <script>
-    async function makeAccusation() {
+    async function sendCommand() {
         const commandInput = document.getElementById("commandInput").value;
         const responseDiv = document.getElementById("response");
 
         // Send command to backend API
-        const response = await fetch('/api/game/accusation', {
+        const response = await fetch('/api/game/command', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -113,41 +113,23 @@
         document.getElementById("commandInput").value = ""; // Clear input
     }
 
-    async function makeSuggestion() {
-        const commandInput = document.getElementById("commandInput").value;
-        const responseDiv = document.getElementById("response");
-
-        // Send command to backend API
-        const response = await fetch('/api/game/suggestion', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ command: commandInput })
-        });
-
-        // Process the response
-        const data = await response.json();
-        responseDiv.textContent += data.output + "\n"; // Append output to response div
-        document.getElementById("commandInput").value = ""; // Clear input
-    }
-</script>
+    </script>
 
 <div class="game-container">
     <!-- Game board section -->
     <div class="board">
         <ul>
             <div class="buttons">
-                <button class="button">Move to Kitchen</button>
-                <button class="button">Move to Ballroom</button>
-                <button class="button">Move to Conservatory</button>
-                <button class="button">Move to Dining Room</button>
-                <button class="button">Move to Library</button>
-                <button class="button">Move to Study</button>
-                <button class="button">Move to Hall</button>
-                <button class="button">Move to Lounge</button>
-                <button class="button">Move to Bathroom</button>
-
+                <button onclick="sendCommand(0)"> Move to Location 0</button>
+                <button onclick="sendCommand(1)"> Move to Location 1</button>
+                <button onclick="sendCommand(2)"> Move to Location 2</button>
+                <button onclick="sendCommand(3)"> Move to Location 3</button>
+                <button onclick="sendCommand(4)"> Move to Location 4</button>
+                <button onclick="sendCommand(5)"> Move to Location 5</button>
+                <button onclick="sendCommand(6)"> Move to Location 6</button>
+                <button onclick="sendCommand(7)"> Move to Location 7</button>
+                <button onclick="sendCommand(8)"> Move to Location 8</button>
+                <button onclick="sendCommand(9)"> Move to Location 9</button>
             </div>
         </ul>
     </div>
@@ -155,8 +137,8 @@
     <!-- Buttons to perform actions (make a suggestion, accuse, etc.) -->
     <div>
         <input type="text" id="accuse_suggest" placeholder="Make your move">
-        <button onclick="makeSuggestion()"> Make a Suggestion</button>
-        <button onclick="makeAccusation()"> Make an Accusation</button>
+        <button onclick="sendCommand()"> Make a Suggestion</button>
+        <button onclick="sendCommand(100)"> Make an Accusation</button>
     </div>
 
     <!-- Current player's turn and suggestion box -->

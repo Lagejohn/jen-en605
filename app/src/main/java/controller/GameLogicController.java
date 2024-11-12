@@ -48,11 +48,18 @@ public class GameLogicController {
                 if(command.equals("no")) {
                     System.out.println("[processCommand] User declined to add additional players");
                     text.append("No more players added, starting game!\n\n");
+
+                    // initialize inactive players
+                    for (PlayerName pName : availablePlayers) {
+                        gameBoard.addPlayer(new Player(pName, startingPositions.get(pName), false));
+                    }
+                    System.out.printf("[processCommand] All inactive players initialized.\n");
+
                     shuffleCardsAndDeal();
                     activePlayers = gameBoard.getActivePlayers();
                     gamestage = GameStage.GAMEPLAY;
 
-                    setupTurn();
+                    text.append(setupTurn());
                     break;
                 } else {
                     try {
@@ -81,6 +88,7 @@ public class GameLogicController {
                     text.append("Make a formal Accusation!\nChoose a suspect: ");
                     text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
                     gamestage = GameStage.ACCUSATION_PARSE_SUSPECT;
+                    break;
                 }
                 if (availableMoves.isEmpty()) {
                     System.out.printf("[processCommand] player %s declined to accuse and has no available moves, skipping...",currPlayer.getName());
@@ -95,8 +103,7 @@ public class GameLogicController {
                     // Must make a suggestion
                     text.append("Make a suggestion!\nChoose a suspect: ");
                     text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
-                    sugSuspect = PlayerName.values()[Integer.parseInt(command)];
-                    gamestage = GameStage.SUGGESTION;
+                    gamestage = GameStage.SUGGESTION_PARSE_SUSPECT;
                 } else {
                     turnNum ++;
                     text.append(setupTurn());
@@ -104,9 +111,16 @@ public class GameLogicController {
                 break;
             }
 
-            case SUGGESTION -> {
+            case SUGGESTION_PARSE_SUSPECT -> {
+                sugSuspect = PlayerName.values()[Integer.parseInt(command)];
                 text.append("\nChoose a weapon: ");
                 text.append(new ArrayList<>(Arrays.asList(Weapon.values()))).append("\n");
+                gamestage = GameStage.SUGGESTION_PARSE_WEAPON;
+
+                break;
+            }
+
+            case SUGGESTION_PARSE_WEAPON -> {
                 sugWeapon = Weapon.values()[Integer.parseInt(command)];
 
                 text.append("\nYour suggestion room is: ").append(selectedMove).append("\n");
@@ -124,7 +138,6 @@ public class GameLogicController {
                 gamestage = GameStage.GAMEPLAY;
                 turnNum++;
                 text.append(setupTurn());
-                break;
             }
 
             case ACCUSATION_PARSE_SUSPECT -> {
@@ -187,6 +200,7 @@ public class GameLogicController {
         text.append("\n").append(currPlayer.getName()).append("'s turn!\n\n");
         boolean movedViaSuggestion = currPlayer.isMovedViaSuggestion();
         BoardSlotLabel currPosition = currPlayer.getPosition();
+        System.out.printf("[setupTurn] Current player %s; current position: %s; moved by suggestion: %s\n", currPlayer.getName(), currPosition.name(), currPlayer.isMovedViaSuggestion());
 
         text.append("Here are the positions of all players on the board:\n\n");
         for (PlayerName pName : PlayerName.values()) {
@@ -248,7 +262,8 @@ public class GameLogicController {
         FIRST_PLAYER_SELECTION,
         ADDITIONAL_PLAYER_SELECTION,
         GAMEPLAY,
-        SUGGESTION,
+        SUGGESTION_PARSE_SUSPECT,
+        SUGGESTION_PARSE_WEAPON,
         ACCUSATION_PARSE_SUSPECT,
         ACCUSATION_PARSE_WEAPON,
         ACCUSATION_PARSE_ROOM,

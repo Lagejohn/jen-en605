@@ -24,5 +24,18 @@ public class GameApiController {
         StringBuilder initialInstructions = new StringBuilder(gameLogicController.restartGame());
         return new GameResponse(initialInstructions);
     }
+
+    @PostMapping("/accusation")
+    public GameResponse handleAccusation(@RequestBody GameCommand gameCommand) {
+        System.out.println("[GameApiController] Received accusation command from frontend: " + gameCommand.getCommand());
+        StringBuilder output = gameLogicController.processCommand(gameCommand.getCommand());
+        return new GameResponse(output);
+    }
+
+    public GameResponse handleSuggestion(@RequestBody GameCommand gameCommand) {
+        System.out.println("[GameApiController] Received suggestion command from frontend: " + gameCommand.getCommand());
+        StringBuilder output = gameLogicController.processCommand(gameCommand.getCommand());
+        return new GameResponse(output);
+    }
 }
 

@@ -177,16 +177,18 @@ public class GameLogicController {
                 } else {
                     text.append(String.format("False accusation! Player %s is eliminated.\n", currPlayer.getName()));
                     gameBoard.removePlayer(currPlayer.getName());
+                    System.out.printf("[processCommand] Player %s eliminated. Remaining players: %s", currPlayer.getName(), gameBoard.getActivePlayers()+"\n");
 
                     if(onlyOnePlayerRemaining()) {
                         winner = gameBoard.getActivePlayers().getFirst();
                         text.append(String.format("%s is the last remaining player! They win!", winner));
                         gamestage = GameStage.ENDGAME;
+                        break;
                     }
 
                     turnNum++;
                     gamestage = GameStage.GAMEPLAY;
-                    setupTurn();
+                    text.append(setupTurn());
                 }
             }
 

@@ -99,7 +99,7 @@
         const responseDiv = document.getElementById("response");
 
         // Send command to backend API
-        const response = await fetch('/api/game/command', {
+        const response = await fetch('/api/game/accusation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -114,17 +114,22 @@
     }
 
     async function makeSuggestion() {
+        const commandInput = document.getElementById("commandInput").value;
         const responseDiv = document.getElementById("response");
 
-        // Send a request to the backend to restart the game
-        const response = await fetch('/api/game/restart', {
-            method: 'POST'
+        // Send command to backend API
+        const response = await fetch('/api/game/suggestion', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: commandInput })
         });
 
         // Process the response
         const data = await response.json();
-        responseDiv.textContent = data.output + "\n"; // Set initial instructions
-        document.getElementById("commandInput").value = ""; // Clear input box
+        responseDiv.textContent += data.output + "\n"; // Append output to response div
+        document.getElementById("commandInput").value = ""; // Clear input
     }
 </script>
 

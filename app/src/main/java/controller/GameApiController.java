@@ -32,6 +32,7 @@ public class GameApiController {
         return new GameResponse(output);
     }
 
+    @PostMapping("/suggestion")
     public GameResponse handleSuggestion(@RequestBody GameCommand gameCommand) {
         System.out.println("[GameApiController] Received suggestion command from frontend: " + gameCommand.getCommand());
         StringBuilder output = gameLogicController.processCommand(gameCommand.getCommand());

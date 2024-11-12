@@ -94,8 +94,8 @@
 </header>
 
 <script>
-    async function sendCommand() {
-        const commandInput = document.getElementById("commandInput").value;
+    async function sendCommand(value) {
+        const commandInput = value;
         const responseDiv = document.getElementById("response");
 
         // Send command to backend API
@@ -109,17 +109,35 @@
 
         // Process the response
         const data = await response.json();
-        responseDiv.textContent += data.output + "\n"; // Append output to response div
+        responseDiv.textContent = data.output + "\n"; // Append output to response div
         document.getElementById("commandInput").value = ""; // Clear input
     }
+
+    async function restartGame() {
+            const responseDiv = document.getElementById("response");
+
+            // Send a request to the backend to restart the game
+            const response = await fetch('/api/game/restart', {
+                method: 'POST'
+            });
+
+            // Process the response
+            const data = await response.json();
+            responseDiv.textContent = data.output + "\n"; // Set initial instructions
+            document.getElementById("commandInput").value = ""; // Clear input box
+        }
 
     </script>
 
 <div class="game-container">
     <!-- Game board section -->
     <div class="board">
+        <pre id="response" style="border:1px solid #ccc; padding:10px; margin-top:10px; white-space:pre-wrap;">
+        <!-- Output from the game will appear here -->
+    </pre>
         <ul>
             <div class="buttons">
+                <button onclick="restartGame()">Restart</button>
                 <button onclick="sendCommand(0)"> Move to Location 0</button>
                 <button onclick="sendCommand(1)"> Move to Location 1</button>
                 <button onclick="sendCommand(2)"> Move to Location 2</button>
@@ -130,6 +148,7 @@
                 <button onclick="sendCommand(7)"> Move to Location 7</button>
                 <button onclick="sendCommand(8)"> Move to Location 8</button>
                 <button onclick="sendCommand(9)"> Move to Location 9</button>
+                <button onclick="sendCommand('no')"> No More Players</button>
             </div>
         </ul>
     </div>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clue Online Gameboard</title>
+    <style>
+        /* Basic styles for board layout */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(5, 100px);
+            grid-template-rows: repeat(5, 100px);
+            gap: 5px;
+            width: 520px;
+            height: 520px;
+            margin: auto;
+        }
+        .space {
+            width: 100px;
+            height: 100px;
+            border: 1px solid black;
+            text-align: center;
+            vertical-align: middle;
+            position: relative;
+            cursor: pointer;
+        }
+        .room {
+            background-color: lightblue;
+        }
+        .hallway {
+            background-color: lightgray;
+        }
+        .player {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+        }
+        .action-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .turn-indicator {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Clue Gameboard</h1>
+<div class="board">
+    <!-- Define spaces on the board -->
+    <div class="space room" id="space0-0" onclick="movePlayer(0, 0)">Hall</div>
+    <div class="space hallway" id="space0-1" onclick="movePlayer(0, 1)"></div>
+    <div class="space room" id="space0-2" onclick="movePlayer(0, 2)">Kitchen</div>
+    <div class="space hallway" id="space0-3" onclick="movePlayer(0, 3)"></div>
+    <div class="space room" id="space0-4" onclick="movePlayer(0, 4)">Ballroom</div>
+
+    <div class="space hallway" id="space1-0" onclick="movePlayer(1, 0)"></div>
+    <div class="space room" id="space1-1" onclick="movePlayer(1, 1)">Library</div>
+    <div class="space hallway" id="space1-2" onclick="movePlayer(1, 2)"></div>
+    <div class="space room" id="space1-3" onclick="movePlayer(1, 3)">Lounge</div>
+    <div class="space hallway" id="space1-4" onclick="movePlayer(1, 4)"></div>
+
+    <div class="space room" id="space2-0" onclick="movePlayer(2, 0)">Dining Room</div>
+    <div class="space hallway" id="space2-1" onclick="movePlayer(2, 1)"></div>
+    <div class="space room" id="space2-2" onclick="movePlayer(2, 2)">Billiard Room</div>
+    <div class="space hallway" id="space2-3" onclick="movePlayer(2, 3)"></div>
+    <div class="space room" id="space2-4" onclick="movePlayer(2, 4)">Study</div>
+</div>
+
+<!-- Player pieces -->
+<div id="player1" class="player" style="background-color: red;"></div>
+<div id="player2" class="player" style="background-color: blue;"></div>
+
+<div class="action-buttons">
+    <button onclick="makeSuggestion()">Make Suggestion</button>
+    <button onclick="makeAccusation()">Make Accusation</button>
+</div>
+
+<div class="turn-indicator" id="turn-indicator">Player 1's Turn</div>
+
+<script>
+// Game state and player positions
+let playerPositions = [
+    { x: 0, y: 0 }, // Player 1 starts at (0, 0)
+    { x: 0, y: 1 }  // Player 2 starts at (0, 1) for example
+];
+
+let currentPlayer = 1; // Start with Player 1
+const totalPlayers = 2; // Number of players (can be increased to support more players)
+
+// Map of grid positions to room names (simplified for this example)
+const roomMap = {
+    '0-0': 'Hall', '0-1': 'Hallway', '0-2': 'Kitchen', '0-3': 'Hallway', '0-4': 'Ballroom',
+    '1-0': 'Hallway', '1-1': 'Library', '1-2': 'Hallway', '1-3': 'Lounge', '1-4': 'Hallway',
+    '2-0': 'Dining Room', '2-1': 'Hallway', '2-2': 'Billiard Room', '2-3': 'Hallway', '2-4': 'Study'
+};
+
+// Adjacency map for rooms and hallways (Player can only move to adjacent spaces)
+const adjacencyMap = {
+    '0-0': ['0-1', '1-0'], // Hall is adjacent to Hallway (0-1) and Hallway (1-0)
+    '0-1': ['0-0', '0-2', '1-1'], // Hallway is adjacent to Hall (0-0), Kitchen (0-2), and Library (1-1)
+    '0-2': ['0-1', '1-2'], // Kitchen is adjacent to Hallway (0-1) and Hallway (1-2)
+    '0-3': ['0-4', '1-3'], // Hallway is adjacent to Ballroom (0-4) and Lounge (1-3)
+    '0-4': ['0-3', '1-4'], // Ballroom is adjacent to Hallway (0-3) and Hallway (1-4)
+    '1-0': ['0-0', '1-1'], // Hallway is adjacent to Hall (0-0) and Library (1-1)
+    '1-1': ['0-1', '1-0', '1-2', '2-1'], // Library is adjacent to Hallway (0-1), Hallway (1-0), Hallway (1-2), and Hallway (2-1)
+    '1-2': ['0-2', '1-1', '1-3'], // Hallway is adjacent to Kitchen (0-2), Library (1-1), and Lounge (1-3)
+    '1-3': ['0-3', '1-2', '2-3'], // Lounge is adjacent to Hallway (0-3), Hallway (1-2), and Hallway (2-3)
+    '1-4': ['0-4', '2-4'], // Hallway is adjacent to Ballroom (0-4) and Study (2-4)
+    '2-0': ['2-1', '1-0'], // Dining Room is adjacent to Hallway (2-1) and Hallway (1-0)
+    '2-1': ['2-0', '2-2'], // Hallway is adjacent to Dining Room (2-0) and Billiard Room (2-2)
+    '2-2': ['2-1', '2-3'], // Billiard Room is adjacent to Hallway (2-1) and Hallway (2-3)
+    '2-3': ['2-2', '1-3'], // Hallway is adjacent to Billiard Room (2-2) and Lounge (1-3)
+    '2-4': ['1-4'] // Study is adjacent to Hallway (1-4)
+};
+
+// Move player piece function
+function movePlayer(x, y) {
+    // Check if it's the correct player's turn
+    //if (currentPlayer !== 1) {
+      //  alert("It's not your turn yet!");
+        //return;
+    //}
+
+    const currentPlayerPos = playerPositions[currentPlayer - 1];
+    const currentPos = `${currentPlayerPos.x}-${currentPlayerPos.y}`;
+    const newPos = `${x}-${y}`;
+    alert("Current Position is " + currentPos + "New Position is " + newPos)
+ 
+    // Check if the new position is adjacent to the current position
+    if (adjacencyMap[currentPos] && adjacencyMap[currentPos].includes(newPos)) {
+        const player = document.getElementById(`player${currentPlayer}`);
+        const newSpace = document.getElementById(`space${x}-${y}`);
+
+        // Calculate the position on the space based on the space's top-left corner
+        const rect = newSpace.getBoundingClientRect();
+        player.style.top = rect.top + "px";
+        player.style.left = rect.left + "px";
+
+        // Update player position in game state
+        playerPositions[currentPlayer - 1] = { x, y };
+
+        // End the turn and switch players
+        switchTurn();
+    } else {
+        alert("You can only move to an adjacent room or hallway!");
+    }
+}
+
+// Make Suggestion Function
+function makeSuggestion() {
+    if (currentPlayer !== 1) { // Check if it's the correct player's turn
+        alert("It's not your turn yet!");
+        return;
+    }
+
+    alert("Make a suggestion about the crime!");
+    // Here, you would add more functionality, such as selecting a suspect, weapon, and room
+    const suspect = prompt("Enter a suspect (e.g., Miss Scarlet, Professor Plum):");
+    const weapon = prompt("Enter a weapon (e.g., Candlestick, Revolver):");
+    const room = prompt("Enter a room (e.g., Kitchen, Lounge):");
+
+    alert(`You suggested: ${suspect} with the ${weapon} in the ${room}`);
+    
+    // End the turn and switch players
+    switchTurn();
+}
+
+// Make Accusation Function
+function makeAccusation() {
+    if (currentPlayer !== 1) { // Check if it's the correct player's turn
+        alert("It's not your turn yet!");
+        return;
+    }
+
+    alert("Make an accusation about the crime!");
+    // Here, you would add functionality to allow players to accuse the correct solution
+    const suspect = prompt("Enter a suspect for the crime:");
+    const weapon = prompt("Enter a weapon for the crime:");
+    const room = prompt("Enter a room where the crime occurred:");
+
+    alert(`You accused: ${suspect} with the ${weapon} in the ${room}`);
+    
+    // End the turn and switch players
+    switchTurn();
+}
+
+// Switch turn between players
+function switchTurn() {
+    // Update turn indicator on screen
+    currentPlayer = currentPlayer === 1 ? 2 : 1; // Toggle between Player 1 and Player 2
+    document.getElementById("turn-indicator").innerText = `Player ${currentPlayer}'s Turn`;
+}
+</script>
+
+</body>
+</html>

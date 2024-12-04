@@ -172,9 +172,10 @@ public class GameLogicController {
 
                 if (correctSuspect && correctWeapon && correctRoom) {
                     winner = currPlayer.getName();
+                    text.append(String.format("%s's accusation is correct, they win!", currPlayer.getName()));
                     gamestage = GameStage.ENDGAME;
                 } else {
-                    System.out.printf("False accusation! Player %s is eliminated.\n", currPlayer.getName());
+                    text.append(String.format("False accusation! Player %s is eliminated.\n", currPlayer.getName()));
                     gameBoard.removePlayer(currPlayer.getName());
                     System.out.printf("[processCommand] Player %s eliminated. Remaining players: %s", currPlayer.getName(), gameBoard.getActivePlayers()+"\n");
 
@@ -269,6 +270,14 @@ public class GameLogicController {
         text += "If you would like to add an additional player, enter their corresponding index now. Otherwise, enter 'no'\n";
         text += "Available Players: " + availablePlayers +"\n";
         return text;
+    }
+
+    private boolean onlyOnePlayerRemaining() {
+        if (gameBoard.getNumActivePlayers() == 1) {
+            System.out.print("[onlyOnePlayerRemaining] Only one player remains, so they win!\n");
+            return true;
+        }
+        return false;
     }
 
     public enum GameStage {

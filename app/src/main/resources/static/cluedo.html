@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clue - Online Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .board {
+            width: 80%;
+            max-width: 1500px;
+            height: 400px;
+            background-color: #fff;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-panel {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        .panel-item {
+            background-color: #fff;
+            border: 1px solid #333;
+            padding: 10px;
+            width: 30%;
+            text-align: center;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: left;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            position: absolute;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Team JEN -- CLue-Less!</h1>
+</header>
+
+<script>
+    async function sendCommand(value) {
+        const commandInput = value;
+        const responseDiv = document.getElementById("response");
+
+        // Send command to backend API
+        const response = await fetch('/api/game/command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: commandInput })
+        });
+
+        // Process the response
+        const data = await response.json();
+        responseDiv.textContent = data.output + "\n"; // Append output to response div
+        document.getElementById("commandInput").value = ""; // Clear input
+    }
+
+    async function restartGame() {
+            const responseDiv = document.getElementById("response");
+
+            // Send a request to the backend to restart the game
+            const response = await fetch('/api/game/restart', {
+                method: 'POST'
+            });
+
+            // Process the response
+            const data = await response.json();
+            responseDiv.textContent = data.output + "\n"; // Set initial instructions
+            document.getElementById("commandInput").value = ""; // Clear input box
+        }
+
+    </script>
+
+<div class="game-container">
+    <!-- Game board section -->
+    <div class="board">
+        <pre id="response" style="border:1px solid #ccc; padding:10px; margin-top:10px; white-space:pre-wrap;">
+        <!-- Output from the game will appear here -->
+    </pre>
+        <ul>
+            <div class="buttons">
+                <button onclick="restartGame()">Restart</button>
+                <button onclick="sendCommand(0)"> Move to Location 0</button>
+                <button onclick="sendCommand(1)"> Move to Location 1</button>
+                <button onclick="sendCommand(2)"> Move to Location 2</button>
+                <button onclick="sendCommand(3)"> Move to Location 3</button>
+                <button onclick="sendCommand(4)"> Move to Location 4</button>
+                <button onclick="sendCommand(5)"> Move to Location 5</button>
+                <button onclick="sendCommand(6)"> Move to Location 6</button>
+                <button onclick="sendCommand(7)"> Move to Location 7</button>
+                <button onclick="sendCommand(8)"> Move to Location 8</button>
+                <button onclick="sendCommand(9)"> Move to Location 9</button>
+                <button onclick="sendCommand('no')"> No More Players</button>
+            </div>
+        </ul>
+    </div>
+
+    <!-- Buttons to perform actions (make a suggestion, accuse, etc.) -->
+    <div>
+        <input type="text" id="accuse_suggest" placeholder="Make your move">
+        <button onclick="sendCommand()"> Make a Suggestion</button>
+        <button onclick="sendCommand(100)"> Make an Accusation</button>
+    </div>
+
+    <!-- Current player's turn and suggestion box -->
+    <div class="turn-info">
+        <h3>Current Turn: Player 1</h3>
+        <p>Make your move. Choose a suspect, weapon, and room.</p>
+    </div>
+</div>
+
+</body>
+
+</html>

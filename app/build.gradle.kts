@@ -20,7 +20,6 @@ repositories {
 
 dependencies {
 
-
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 
@@ -46,7 +45,6 @@ java {
         languageVersion = JavaLanguageVersion.of(22)
     }
 }
-
 
 application {
     // Define the main class for the application.

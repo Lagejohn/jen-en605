@@ -2,14 +2,21 @@ package obj;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ch.qos.logback.core.joran.sanity.Pair;
 import controller.GameLogicController;
 
+import static java.util.Map.entry;
+
 public class BoardSlot {
+
     
     protected List<Player> occupants;
     protected GameLogicController.BoardSlotLabel label;
     protected List<GameLogicController.BoardSlotLabel> adjacentSlots;
+
     
     public BoardSlot(GameLogicController.BoardSlotLabel label, List<GameLogicController.BoardSlotLabel> adjacentSlots) {
         this.occupants = new ArrayList<>();
@@ -40,6 +47,4 @@ public class BoardSlot {
     public boolean canEnter() {
         return true;
     }
-    
-    
 }

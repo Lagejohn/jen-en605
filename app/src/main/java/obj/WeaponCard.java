@@ -14,4 +14,8 @@ public class WeaponCard extends Card {
         return this.weapon;
     }
 
+    protected String cardType() { return "Weapon card"; }
+
+    public String getContents() { return this.weapon.name(); }
+
 }

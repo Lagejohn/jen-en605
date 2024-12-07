@@ -13,4 +13,10 @@ public class RoomCard extends Card {
     public GameLogicController.BoardSlotLabel getRoom() {
         return this.room;
     }
+
+    protected String cardType() { return "Room card"; }
+
+    public String getContents() { return this.room.name(); }
+
+
 }

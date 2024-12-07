@@ -55,4 +55,8 @@ public class Player {
     public boolean isMovedViaSuggestion() {
         return this.movedViaSuggestion;
     }
+
+    public List<Card> getHand() { return this.hand; }
+
+    public void addToHand(Card c) { this.hand.add(c); }
 }

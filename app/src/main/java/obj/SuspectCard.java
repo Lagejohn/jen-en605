@@ -14,4 +14,8 @@ public class SuspectCard extends Card {
         return this.suspect;
     }
 
+    protected String cardType() { return "Suspect card"; }
+
+    public String getContents() { return this.suspect.name(); }
+
 }

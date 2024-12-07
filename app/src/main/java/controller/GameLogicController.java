@@ -1,15 +1,9 @@
 package controller;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
+
 import static java.util.Map.entry;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import obj.*;
 import org.springframework.stereotype.Service;
 
@@ -24,11 +18,7 @@ public class GameLogicController {
     List<BoardSlotLabel> availableMoves;
     Player currPlayer;
     BoardSlotLabel selectedMove;
-    int turnNum;
-
-    String displayMessage = "";
-
-    ObjectMapper objectMapper = new ObjectMapper();
+    int turnNum = 0;
 
     PlayerName sugSuspect;
     Weapon sugWeapon;
@@ -37,71 +27,20 @@ public class GameLogicController {
     Weapon accWeapon;
     BoardSlotLabel accRoom;
 
-    public class GridSquare {
-        public int row;
-        public int column;
-        public String imgPath;
-
-        public GridSquare(int row, int column) {
-            this.row = row;
-            this.column = column;
-        }
-
-        public GridSquare setImgPath(String imgPath) {
-            this.imgPath = imgPath;
-            return this;
-        }
-    }
-
-    public GridSquare getGridSquareForBoardSlot(GameLogicController.BoardSlotLabel boardSlot) {
-        return gridMapping.get(boardSlot);
-    }
-
-    private Map<GameLogicController.BoardSlotLabel, GridSquare> gridMapping = Map.ofEntries(
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_1, new GridSquare(0,4)),
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_2, new GridSquare(2,6)),
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_3, new GridSquare(6,4)),
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_4, new GridSquare(6,2)),
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_5, new GridSquare(4,0)),
-            entry(GameLogicController.BoardSlotLabel.STARTING_SQUARE_6, new GridSquare(2,0)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_1, new GridSquare(1,2)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_2, new GridSquare(1,4)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_3, new GridSquare(2,1)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_4, new GridSquare(2,3)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_5, new GridSquare(2,5)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_6, new GridSquare(3,2)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_7, new GridSquare(3,4)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_8, new GridSquare(4,1)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_9, new GridSquare(4,3)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_10, new GridSquare(4,5)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_11, new GridSquare(5,2)),
-            entry(GameLogicController.BoardSlotLabel.HALLWAY_12, new GridSquare(5,4)),
-            entry(GameLogicController.BoardSlotLabel.STUDY, new GridSquare(1,1)),
-            entry(GameLogicController.BoardSlotLabel.HALL, new GridSquare(1,3)),
-            entry(GameLogicController.BoardSlotLabel.LOUNGE, new GridSquare(1,5)),
-            entry(GameLogicController.BoardSlotLabel.LIBRARY, new GridSquare(3,1)),
-            entry(GameLogicController.BoardSlotLabel.BILLIARD_ROOM, new GridSquare(3,3)),
-            entry(GameLogicController.BoardSlotLabel.DINING_ROOM, new GridSquare(3,5)),
-            entry(GameLogicController.BoardSlotLabel.CONSERVATORY, new GridSquare(5,1)),
-            entry(GameLogicController.BoardSlotLabel.BALLROOM, new GridSquare(5,3)),
-            entry(GameLogicController.BoardSlotLabel.KITCHEN, new GridSquare(5,5))
-
-    );
-
     /**
      * Primary method for handling input commands from the frontend client
      *
      * @param command String representing command submitted
      * @return Text to be sent back to the user based on consequences of their command
      */
-    public GameResponse processCommand(String command) throws Exception {
+    public StringBuilder processCommand(String command) {
         System.out.println("[processCommand] Current gamestage: "+gamestage);
         System.out.println("[processCommand] User command: '"+command+"'");
         StringBuilder text = new StringBuilder("User: " + command + "\n");
         switch(gamestage) {
 
             case ADDITIONAL_PLAYER_SELECTION -> {
-                if(command.equals("CONTINUE")) {
+                if(command.equals("no")) {
                     System.out.println("[processCommand] User declined to add additional players");
                     text.append("No more players added, starting game!\n\n");
 
@@ -115,9 +54,8 @@ public class GameLogicController {
                     activePlayers = gameBoard.getActivePlayers();
                     gamestage = GameStage.GAMEPLAY;
 
-                    setupTurn();
-                    return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(availableMoves)),
-                            new StringBuilder(displayMessage));
+                    text.append(setupTurn());
+                    break;
                 } else {
                     try {
                         text = new StringBuilder(initializePlayer(command));
@@ -140,100 +78,118 @@ public class GameLogicController {
             }
 
             case GAMEPLAY -> {
-                if (command.equals("MAKE_ACCUSATION")) {
+                if (command.equals("100")) {
                     //winner = handleAccusation(currPlayer.getName());
+                    text.append("Make a formal Accusation!\nChoose a suspect: ");
+                    text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
                     gamestage = GameStage.ACCUSATION_PARSE_SUSPECT;
-                    displayMessage = currPlayer.getName() + " is making a formal accusation! Let's begin by picking a suspect:";
-                    return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(new ArrayList<>(Arrays.asList(PlayerName.values())))),
-                            new StringBuilder(displayMessage));
+                    break;
                 }
                 if (availableMoves.isEmpty()) {
                     System.out.printf("[processCommand] player %s declined to accuse and has no available moves, skipping...",currPlayer.getName());
+                    text.append("Player declined to accuse and has no available moves, skipping turn...\n");
                     turnNum++;
-                    setupTurn();
-                    return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(availableMoves)),
-                            new StringBuilder(displayMessage));
+                    text.append(setupTurn());
+                    break;
                 }
-                selectedMove = availableMoves.remove(availableMoves.indexOf(BoardSlotLabel.valueOf(command)));
+                selectedMove = availableMoves.get(Integer.parseInt(command));
                 boolean isInRoom = handlePlayerMove(currPlayer.getName(),selectedMove);
                 if(isInRoom) {
                     // Must make a suggestion
-                    displayMessage = "Make a suggestion! Your suggestion room is " + selectedMove + ".\nChoose a suspect: ";
+                    text.append("Make a suggestion!\nChoose a suspect: ");
+                    text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
                     gamestage = GameStage.SUGGESTION_PARSE_SUSPECT;
-
-                    return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(new ArrayList<>(Arrays.asList(PlayerName.values())))),
-                            new StringBuilder(displayMessage));
                 } else {
                     turnNum ++;
-                    setupTurn();
-                    return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(availableMoves)),
-                            new StringBuilder(displayMessage));
+                    text.append(setupTurn());
                 }
-
+                break;
             }
 
             case SUGGESTION_PARSE_SUSPECT -> {
-                sugSuspect = PlayerName.valueOf(command);
-                displayMessage = "Next, select your weapon: ";
+                sugSuspect = PlayerName.values()[Integer.parseInt(command)];
+                text.append("\nChoose a weapon: ");
+                text.append(new ArrayList<>(Arrays.asList(Weapon.values()))).append("\n");
                 gamestage = GameStage.SUGGESTION_PARSE_WEAPON;
 
-                return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(new ArrayList<>(Arrays.asList(Weapon.values())))),
-                        new StringBuilder(displayMessage));
+                break;
             }
 
             case SUGGESTION_PARSE_WEAPON -> {
-                sugWeapon = Weapon.valueOf(command);
+                sugWeapon = Weapon.values()[Integer.parseInt(command)];
+
+                text.append("\nYour suggestion room is: ").append(selectedMove).append("\n");
 
                 Suggestion suggestion = makeSuggestion(sugSuspect, sugWeapon, selectedMove);
-                displayMessage = "provide suggestion results here"; // todo merge with cards logic
-
                 if (currPlayer.isMovedViaSuggestion()) {
                     availableMoves.remove(currPlayer.getPosition());
                 }
-                gamestage = GameStage.CONTINUE_BUTTON;
-                return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(new ArrayList<>(Arrays.asList("CONTINUE")))),
-                        new StringBuilder(displayMessage));
+
+                String attemptDisproveResult = attemptDisproveSuggestion(suggestion);
+                text.append(attemptDisproveResult);
+
+                if (!attemptDisproveResult.contains("disproven")) {
+                    text.append("\nSuggestion could not be disproven! Would you like to make your formal accusation?")
+                            .append("\nEnter 1 for yes, or 2 for no: \n");
+
+                    gamestage =GameStage.OFFER_ACCUSATION_ATTEMPT;
+                } else {
+                    gamestage = GameStage.GAMEPLAY;
+                    turnNum++;
+                    text.append(setupTurn());
+                }
+
             }
 
-            case CONTINUE_BUTTON -> {
-                gamestage = GameStage.GAMEPLAY;
-                turnNum++;
-                setupTurn();
-                return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(availableMoves)),
-                        new StringBuilder(displayMessage));
+            case OFFER_ACCUSATION_ATTEMPT -> {
+                int selection = Integer.parseInt(command);
+
+                if (selection == 1) {
+                    text.append("Make a formal Accusation!\nChoose a suspect: ");
+                    text.append(new ArrayList<>(Arrays.asList(PlayerName.values()))).append("\n");
+                    gamestage = GameStage.ACCUSATION_PARSE_SUSPECT;
+                    break;
+                } else if (selection == 2) {
+                    text.append("\nNo formal accusation made. Proceeding to next turn...\n");
+                    gamestage = GameStage.GAMEPLAY;
+                    turnNum++;
+                    text.append(setupTurn());
+                } else {
+                    text.append("INVALID CHOICE, please try again\n");
+                }
+
             }
 
             case ACCUSATION_PARSE_SUSPECT -> {
-                accSuspect = PlayerName.valueOf(command);
-                displayMessage = "Next, select your weapon: ";
+                accSuspect = PlayerName.values()[Integer.parseInt(command)];
+                text.append("\nChoose a weapon: ");
                 text.append(new ArrayList<>(Arrays.asList(Weapon.values()))).append("\n");
                 gamestage = GameStage.ACCUSATION_PARSE_WEAPON;
-                return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(new ArrayList<>(Arrays.asList(Weapon.values())))),
-                        new StringBuilder(displayMessage));
+                break;
             }
 
             case ACCUSATION_PARSE_WEAPON -> {
-                accWeapon = Weapon.valueOf(command);
+                accWeapon = Weapon.values()[Integer.parseInt(command)];
 
-                displayMessage = "Finally, choose a room: ";
+                text.append("\nChoose a room: ");
+                text.append(rooms);
                 gamestage = GameStage.ACCUSATION_PARSE_ROOM;
-                return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(rooms)),
-                        new StringBuilder(displayMessage));
+                break;
             }
 
             case ACCUSATION_PARSE_ROOM -> {
-                accRoom = rooms.get(rooms.indexOf(BoardSlotLabel.valueOf(command)));
+                accRoom = rooms.get(Integer.parseInt(command));
 
                 Suggestion suggestion = makeSuggestion(accSuspect, accWeapon, accRoom);
-                boolean correctSuspect = gameBoard.compareSuspect(suggestion.getSuspectCard().getSuspect());
-                boolean correctWeapon = gameBoard.compareWeapon(suggestion.getWeaponCard().getWeapon());
-                boolean correctRoom = gameBoard.compareRoom(suggestion.getRoomCard().getRoom());
+                checkWinner(suggestion);
 
-                if (correctSuspect && correctWeapon && correctRoom) {
-                    winner = currPlayer.getName();
+                text.append("Accusation made! Here are your results: \n");
+
+                if (winner != null) {
+                    text.append(String.format("%s's accusation is correct, they win!", currPlayer.getName()));
                     gamestage = GameStage.ENDGAME;
                 } else {
-                    System.out.printf("False accusation! Player %s is eliminated.\n", currPlayer.getName());
+                    text.append(String.format("False accusation! Player %s is eliminated.\n", currPlayer.getName()));
                     gameBoard.removePlayer(currPlayer.getName());
                     System.out.printf("[processCommand] Player %s eliminated. Remaining players: %s", currPlayer.getName(), gameBoard.getActivePlayers()+"\n");
 
@@ -251,15 +207,10 @@ public class GameLogicController {
             }
 
             case ENDGAME -> {
-                displayMessage = winner + " has already won! Press restart to play again.\n";
-                return new GameResponse(new StringBuilder(), new StringBuilder(displayMessage));
+                text.append(winner).append(" has already won! Press restart to play again.\n");
             }
         }
-        return new GameResponse(new StringBuilder(), new StringBuilder());
-    }
-
-    private boolean onlyOnePlayerRemaining() {
-        return gameBoard.getActivePlayers().size() == 1;
+        return text;
     }
 
     /** Standard setup for a player's turn that does everything prior to the player submitting their move
@@ -267,39 +218,45 @@ public class GameLogicController {
      */
     private String setupTurn() {
         System.out.printf("[setupTurn] Setting up turn #%d\n", turnNum);
+        StringBuilder text = new StringBuilder();
 
         currPlayer = gameBoard.getPlayers().get(activePlayers.get(turnNum % activePlayers.size()));
+        text.append("\n").append(currPlayer.getName()).append("'s turn!\n\n");
         boolean movedViaSuggestion = currPlayer.isMovedViaSuggestion();
         BoardSlotLabel currPosition = currPlayer.getPosition();
         System.out.printf("[setupTurn] Current player %s; current position: %s; moved by suggestion: %s\n", currPlayer.getName(), currPosition.name(), currPlayer.isMovedViaSuggestion());
 
+        text.append("Here are the positions of all players on the board:\n\n");
         for (PlayerName pName : PlayerName.values()) {
             Player p = gameBoard.getPlayerByName(pName);
-            p.getPosition();
+            text.append(p.getName()).append("'s position: ").append(p.getPosition()).append("\n");
         }
+
+        text.append("Here are  the cards in your hand:\n\n");
+        text.append(Card.displayHand(currPlayer.getHand()));
         availableMoves = gameBoard.getAvailableMoves(currPosition);
 
         // if player was moved by suggestion, they have the option to stay in current room and make suggestion
         if (movedViaSuggestion) availableMoves.add(currPosition);
 
         if (availableMoves.isEmpty()) {
-            displayMessage = "Player has no available moves. Please make formal accusation or skip turn.";
+            text.append("Player has no available moves. Please enter 100 to make formal accusation; otherwise enter any other integer to skip turn:\n");
         } else {
-            displayMessage = currPlayer.getName() + "'s turn! Please select from the options below where you would like to move, or make your formal accusation.";
+            text.append("\nAvailable moves: ").append(availableMoves).append(" Please enter the number of the slot you would like to enter:, or enter 100 to make your formal accusation:\n");
         }
 
-        return ""; // todo take out
+        return text.toString();
     }
 
-    public GameResponse restartGame() {
-
+    public String restartGame() {
+        String text = "--New Game Started--\n";
+        text += "Welcome to clueless!\n\n";
         gameBoard = new Board(createLayout());
         winner = null;
         gamestage = GameStage.FIRST_PLAYER_SELECTION;
         turnNum = 0;
-
-        // reset available players
-        List<PlayerName> availablePlayers = new ArrayList<>(Arrays.asList(
+        // reset players
+        availablePlayers = new ArrayList<>(Arrays.asList(
 
                 PlayerName.MISS_SCARLET,
                 PlayerName.COLONEL_MUSTARD,
@@ -311,6 +268,10 @@ public class GameLogicController {
         )
         );
 
+        // selectPlayers()
+        text += "Available Players: " + availablePlayers + "\nPlease enter the number of the player you would like to select.\n";
+
+
         //randomizeWeaponPlacements();
         randomizeWeaponPlacements();
 
@@ -321,53 +282,14 @@ public class GameLogicController {
 
 
         //playGame();
-        try {
-            return new GameResponse(new StringBuilder(objectMapper.writeValueAsString(availablePlayers)),
-                    new StringBuilder("Welcome to ClueLess! It is time to select players."));
-        } catch (Exception e) {
-            return GameResponse.returnErrorResponse(e.getMessage());
-        }
-    }
 
-    public GameResponse getBoardPositions() {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        Map<PlayerName, GridSquare> positions = Map.ofEntries(
-                entry(PlayerName.MISS_SCARLET, gameBoard.getPlayerByName(PlayerName.MISS_SCARLET) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_1).setImgPath("images/miss_scarlett.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.MISS_SCARLET).getPosition()).setImgPath("images/miss_scarlett.png")),
-                entry(PlayerName.COLONEL_MUSTARD, gameBoard.getPlayerByName(PlayerName.COLONEL_MUSTARD) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_2).setImgPath("images/colonel_mustard.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.COLONEL_MUSTARD).getPosition()).setImgPath("images/colonel_mustard.png")),
-                entry(PlayerName.MRS_WHITE, gameBoard.getPlayerByName(PlayerName.MRS_WHITE) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_3).setImgPath("images/mrs_white.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.MRS_WHITE).getPosition()).setImgPath("images/mrs_white.png")),
-                entry(PlayerName.MR_GREEN, gameBoard.getPlayerByName(PlayerName.MR_GREEN) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_4).setImgPath("images/mr_green.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.MR_GREEN).getPosition()).setImgPath("images/mr_green.png")),
-                entry(PlayerName.MRS_PEACOCK, gameBoard.getPlayerByName(PlayerName.MRS_PEACOCK) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_5).setImgPath("images/mrs_peacock.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.MRS_PEACOCK).getPosition()).setImgPath("images/mrs_peacock.png")),
-                entry(PlayerName.PROFESSOR_PLUM, gameBoard.getPlayerByName(PlayerName.PROFESSOR_PLUM) == null ?
-                        getGridSquareForBoardSlot(BoardSlotLabel.STARTING_SQUARE_6).setImgPath("images/professor_plum.png") :
-                        getGridSquareForBoardSlot(gameBoard.getPlayerByName(PlayerName.PROFESSOR_PLUM).getPosition()).setImgPath("images/professor_plum.png"))
-        );
-
-        try {
-            String positionJson = objectMapper.writeValueAsString(positions);
-            System.out.print("Position json returned from backend: " + positionJson + "\n");
-
-            return new GameResponse(new StringBuilder(positionJson), new StringBuilder()); // no frontend text display needed
-        } catch (Exception e) {
-            return GameResponse.returnErrorResponse(e.getMessage());
-        }
-
-
+        return text;
     }
 
     public String initializePlayer(String command) throws NumberFormatException, IndexOutOfBoundsException {
         String text = "";
-        PlayerName name = PlayerName.valueOf(command);
+        int playerChoice = Integer.parseInt(command);
+        PlayerName name = availablePlayers.get(playerChoice);
         addPlayer(name, startingPositions.get(name));
         text += "Selected "+name+"\n";
         text += "If you would like to add an additional player, enter their corresponding index now. Otherwise, enter 'no'\n";
@@ -375,13 +297,21 @@ public class GameLogicController {
         return text;
     }
 
+    private boolean onlyOnePlayerRemaining() {
+        if (gameBoard.getNumActivePlayers() == 1) {
+            System.out.print("[onlyOnePlayerRemaining] Only one player remains, so they win!\n");
+            return true;
+        }
+        return false;
+    }
+
     public enum GameStage {
         FIRST_PLAYER_SELECTION,
         ADDITIONAL_PLAYER_SELECTION,
         GAMEPLAY,
-        CONTINUE_BUTTON,
         SUGGESTION_PARSE_SUSPECT,
         SUGGESTION_PARSE_WEAPON,
+        OFFER_ACCUSATION_ATTEMPT,
         ACCUSATION_PARSE_SUSPECT,
         ACCUSATION_PARSE_WEAPON,
         ACCUSATION_PARSE_ROOM,
@@ -476,7 +406,7 @@ public class GameLogicController {
 
     // Legacy method
     public void startGame() {
-        
+
         // todo take out players if not needed
         gameBoard = new Board(createLayout());
         
@@ -663,11 +593,6 @@ public class GameLogicController {
 
     }
 
-    public List<PlayerName> getAvailablePlayers() {
-        // todo see if needed
-        return availablePlayers;
-
-    }
 
     // Legacy method
     private Map<BoardSlotLabel, BoardSlot> createLayout() {
@@ -851,6 +776,21 @@ public class GameLogicController {
         remainingCards.removeIf(c -> c.getSuspect() == gameBoard.getWinningSuggestion().getSuspectCard().getSuspect());
         remainingCards.removeIf(c -> c.getWeapon() == gameBoard.getWinningSuggestion().getWeaponCard().getWeapon());
         remainingCards.removeIf(c -> c.getRoom() == gameBoard.getWinningSuggestion().getRoomCard().getRoom());
+
+        Collections.shuffle(remainingCards);
+
+        int numPlayers = this.gameBoard.getNumActivePlayers();
+        int cardNum = 1;
+        while (!remainingCards.isEmpty()) {
+
+            this.gameBoard.getPlayerByName(
+                    this.gameBoard.getActivePlayers().get(
+                            cardNum % numPlayers)).addToHand(remainingCards.removeFirst()
+            );
+
+            cardNum++;
+        }
+
     }
 
     // Legacy method
@@ -886,6 +826,61 @@ public class GameLogicController {
         gameBoard.markPlayerMovedViaSuggestion(suspect);
         
         return new Suggestion(new SuspectCard(suspect), new WeaponCard(weapon), new RoomCard(room));
+    }
+
+    private String attemptDisproveSuggestion(Suggestion suggestion) {
+
+        System.out.print("[attemptDisproveSuggestion] Attempting disprove suggestion\n");
+        StringBuilder text = new StringBuilder();
+
+
+        boolean suggestionDisproven = false;
+        List<PlayerName> disprovers = new ArrayList<>();
+        disprovers.addAll(activePlayers);
+        disprovers.remove(currPlayer.getName());
+        while (!suggestionDisproven && !disprovers.isEmpty()) {
+
+            Player disprovePlayerTurn = gameBoard.getPlayers().get(disprovers.removeFirst());
+            text.append("Player attempting to disprove: ").append(disprovePlayerTurn.getName()).append("\n");
+            String result = displayCardIfPossible(disprovePlayerTurn, suggestion);
+            text.append(result);
+
+            suggestionDisproven = result.contains("disproven");
+        }
+
+        return text.toString();
+    }
+
+    private String displayCardIfPossible(Player disprover, Suggestion suggestion) {
+        String noMatchResult = "No match found in " + disprover.getName() + "'s hand!\n\n";
+        String matchResult = "Suggestion disproven -- " + disprover.getName() + " has the ";
+
+        List<String> handContents = new ArrayList<>();
+        for (Card c : disprover.getHand()) { handContents.add(c.getContents()); }
+
+        if (handContents.contains(suggestion.getRoomCard().getContents())) {
+            return matchResult + suggestion.getRoomCard().getRoom() + " room card!\n";
+        }
+
+        if (handContents.contains(suggestion.getSuspectCard().getContents())) {
+            return matchResult + suggestion.getSuspectCard().getSuspect() + " suspect card!\n";
+        }
+
+        if (handContents.contains(suggestion.getWeaponCard().getContents())) {
+            return matchResult + suggestion.getWeaponCard().getWeapon() + " weapon card!\n";
+        }
+
+        return noMatchResult;
+    }
+
+    private void checkWinner(Suggestion suggestion) {
+
+        boolean correctSuspect = gameBoard.compareSuspect(suggestion.getSuspectCard().getSuspect());
+        boolean correctWeapon = gameBoard.compareWeapon(suggestion.getWeaponCard().getWeapon());
+        boolean correctRoom = gameBoard.compareRoom(suggestion.getRoomCard().getRoom());
+
+        if (correctSuspect && correctWeapon && correctRoom) { winner = currPlayer.getName(); }
+
     }
     
 
